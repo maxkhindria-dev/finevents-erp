@@ -29,7 +29,7 @@ FinEvents is a specialist financial events agency with entities in France, the U
 
 ## 2. Users and access roles
 
-Four roles, enforced on the server **and** in the database (row-level security), never only by hiding UI. Every user has exactly one role. Freelancers are Users with an expiry date and project-scoped access.
+Four roles, enforced on the server **and** at the data layer (automatic query scopes plus restricted MySQL users; MySQL has no native row-level security, see `docs/stack-review.md` §3), never only by hiding UI. Every user has exactly one role. Freelancers are Users with an expiry date and project-scoped access.
 
 | Role | Who | Can do | Cannot do |
 |---|---|---|---|
@@ -133,7 +133,7 @@ File contents live in Google Drive; the ERP stores IDs and metadata only.
 - Owner break-glass account: separate credentials stored offline; every use alerts by email.
 
 ### 5.2 Authorisation
-- Server-side role and scope checks on every request, plus database RLS as a second layer.
+- Server-side role and scope checks on every request (Laravel Policies), plus automatic query scopes on every model, plus restricted MySQL users and triggers (audit log write-once, sensitive tables on a separate connection).
 - Deny by default; automated tests prove each role cannot reach a higher role's or another entity's data.
 - No shared accounts, no shared API keys.
 
@@ -174,17 +174,19 @@ File contents live in Google Drive; the ERP stores IDs and metadata only.
 
 ## 6. Tech stack and hosting
 
-See `docs/stack-review.md` for Claude Code's review. Proposed:
+**Decided 26 Nov 2026 (Max): PHP + MySQL.** Details and reasoning in `docs/stack-review.md`.
 
 | Layer | Choice |
 |---|---|
-| App | Next.js + TypeScript |
-| Database and auth | Supabase (Postgres), EU region |
-| Hosting | Vercel, EU function region |
-| Background jobs | Scheduled jobs (Inngest or Supabase cron) |
-| UI | Tailwind + component library, FinEvents theme, Lato |
-| Code and CI | Private GitHub repo, GitHub Actions |
-| Monitoring | Sentry (scrubbed) + uptime checks |
+| Front end | HTML, CSS, Bootstrap 5, plain JavaScript (Blade templates, server-rendered) |
+| Back end | PHP 8.3 + Laravel 12 |
+| Database | MySQL 8, managed, Frankfurt (e.g. AWS RDS), PITR on |
+| Hosting | Laravel Cloud (EU) or Laravel Forge + AWS Frankfurt (to decide) |
+| Background jobs | Laravel scheduler + queues (Redis) |
+| Sign-in | Google (Socialite) + app MFA (Fortify TOTP) + passkeys for Owner/Super Admin |
+| Tests | Pest + Playwright |
+| Code and CI | Private GitHub repo, GitHub Actions (PHPStan, Semgrep, composer audit, gitleaks) |
+| Monitoring | Sentry EU (scrubbed) + uptime checks |
 
 Environments: development (local), staging (test data; Max + pilot group), production (real data, restricted deploys).
 
@@ -210,9 +212,11 @@ Each phase ends with a tested release on staging that Max signs off before the n
 - [ ] Do any current clients require ISO 27001 or SOC 2 from suppliers?
 - [ ] *(added by Claude)* Freelancer sign-in: FinEvents Google accounts for freelancers, or their own Google accounts? See `docs/stack-review.md` §2.
 - [ ] *(added by Claude)* Which secrets manager? See `docs/stack-review.md` §5.
+- [ ] *(added by Claude)* Hosting: Laravel Cloud (EU) or Forge + AWS Frankfurt?
 
 ## Decisions log
 
 | Date | Decision | By |
 |---|---|---|
 | 2026-11-26 | Brief saved as CLAUDE.md; stack review and Phase 1 plan proposed, awaiting approval | Claude Code |
+| 2026-11-26 | Stack changed to HTML/CSS/Bootstrap/JS + PHP (Laravel) + MySQL. No native row-level security, so permissions use 3 layers: policies, automatic query scopes, restricted MySQL users/triggers | Max |

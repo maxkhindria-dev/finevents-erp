@@ -1,66 +1,57 @@
 # Tech stack review
 
-**Status:** proposed 26 Nov 2026, waiting for Max's approval.
+**Status:** stack changed to PHP + MySQL on 26 Nov 2026 (Max's decision). Hosting and secrets-manager choices are still open.
 
-**Summary:** Keep the proposed stack (Next.js + TypeScript, Supabase in the EU, Vercel, Tailwind, GitHub Actions, Sentry). It is mainstream and well documented, and it fits the security requirements. Six points need a decision or a small change. Each is set out below in plain English.
+**Summary:** HTML, CSS, Bootstrap and JavaScript for the front end, PHP (Laravel framework) for the back end, MySQL for the database. MySQL has no built-in row-level security, so permissions are enforced in three layers instead (see §3). The brief's security section has been updated to say this plainly.
 
 ---
 
-## 1. Confirmed as proposed
+## 1. Stack
 
-| Layer | Choice | Notes |
+| Layer | Choice | Why |
 |---|---|---|
-| App | Next.js (App Router) + TypeScript (strict) | Server-side checks run in server actions and route handlers, never in the browser. |
-| Database | Supabase Postgres, **Frankfurt (eu-central-1)** | Row-level security is native. Point-in-time recovery needs the Pro plan plus the PITR add-on, which is required to meet RPO ≤ 24 h. |
-| Hosting | Vercel, functions pinned to **fra1** | Same region as the database, so requests are fast and data stays in the EU. Vercel is a US company, so it goes on the sub-processor list with its DPA (EU Standard Contractual Clauses). |
-| UI | Tailwind + shadcn/ui (Radix) | Accessible components that we own in the repo and can theme in Dark Blue / Orange with Lato. |
-| CI | GitHub Actions + Dependabot + CodeQL + secret scanning + gitleaks | Runs on every pull request. |
-| Monitoring | Sentry (EU data region, `sendDefaultPii: false`, extra scrubbing) + uptime check | |
-| Tests | Vitest (logic), **pgTAP** (database permission tests), Playwright (end-to-end) | pgTAP tests check the database rules directly, so a UI bug cannot hide a permission hole. |
+| Front end | HTML + CSS + **Bootstrap 5** + plain JavaScript, rendered by Laravel's Blade templates | As requested. The pages are built on the server, so no permission logic runs in the browser. Bootstrap is themed in Dark Blue #002F55 / Orange #F57634 with Lato. |
+| Back end | **PHP 8.3 + Laravel 12** | Laravel is the most widely used PHP framework, and any PHP developer can maintain it. CSRF protection, input validation, encryption, queues and permission "policies" come built in. |
+| Database | **MySQL 8**, managed, in **Frankfurt** (e.g. AWS RDS eu-central-1) | Managed service: encrypted at rest (AES-256), daily backups, point-in-time recovery. Meets RPO ≤ 24 h. |
+| Hosting | **Laravel Cloud (EU region)** or **Laravel Forge + AWS Frankfurt** ⚠ decision needed | Both are made for Laravel. Cloud is simpler and fully managed. Forge gives more control and keeps everything in one AWS account. |
+| Background jobs | Laravel **scheduler + queues** (Redis, same region) | Daily email sync and invoice matching runs. No extra supplier. |
+| Sign-in | Google sign-in (**Laravel Socialite**), **Laravel Fortify** for app MFA (authenticator app), **WebAuthn passkeys** for Owner and Super Admin | See §2. |
+| Tests | **Pest** (PHP tests, including the permission matrix), **Playwright** (end-to-end in a real browser) | |
+| CI | GitHub Actions: PHPStan (level max) + Larastan, **Semgrep** (security scanning; GitHub's CodeQL doesn't support PHP), `composer audit`, `npm audit`, Dependabot, gitleaks + GitHub secret scanning | Runs on every pull request. |
+| Monitoring | Sentry (EU data region, personal data scrubbed) + uptime check | |
 
-## 2. Google sign-in and freelancers ⚠ decision needed
+## 2. Sign-in and MFA
 
-Google treats an app as one of two types:
+- **Google sign-in only:** no passwords stored by us. Only the FinEvents domain is allowed (plus invited freelancers, depending on the decision below).
+- **Two layers of MFA:**
+  1. In the Google Workspace admin console, enforce 2-Step Verification for everyone, with security keys only for leadership.
+  2. In the app, an extra second factor at every new session: an authenticator app for everyone, passkeys or hardware keys required for the Owner and Super Admin.
+- Sessions are stored on the server and last at most 12 hours. Finance screens time out after 30 minutes idle, enforced on the server. A fresh MFA check is required before exports, role changes and finance syncs.
 
-- **Internal app:** only FinEvents Google Workspace accounts can use it. Google does not review it, even when it reads Gmail and Drive.
-- **External app:** anyone can sign in. Reading Gmail or Drive then counts as a "restricted scope", which needs Google's verification and a **paid annual third-party security assessment (CASA)**. That takes weeks and costs money every year.
+### ⚠ Freelancers (decision needed, same as before)
+If freelancers sign in with their own Google accounts, Google treats the app as public. Reading Gmail and Drive then needs Google's review plus a **paid annual security assessment**. **Recommendation:** give freelancers FinEvents Google Workspace accounts (roughly €7–14 per month each). This also lets you enforce MFA on them and offboard them in one action.
 
-The brief lets freelancers sign in with outside accounts, which would make the app External.
+## 3. Permissions without row-level security
 
-**Recommendation: give freelancers a FinEvents Google Workspace account** (roughly €7–14 per month each). This also:
-- lets us enforce MFA on them through Google, which we cannot do for a personal Gmail account;
-- makes offboarding one action, because suspending the Google account cuts off everything;
-- keeps client emails and files off personal accounts, which bank due-diligence questionnaires ask about.
+PostgreSQL could enforce "who sees which row" inside the database. MySQL can't, so we use three layers. If one layer has a bug, the others still block the access.
 
-*Fallback if you prefer outside accounts:* use two Google OAuth apps. An External one handles sign-in only, with basic scopes and light review. An Internal one handles Gmail, Calendar and Drive connections for staff only. Freelancers would then need app-level MFA (see §3).
+1. **Route and action checks (Laravel Policies):** every page and every action asks "is this role, in this entity, allowed to do this?" The default answer is no. A test fails the build if any route has no permission check.
+2. **Automatic data filtering (global query scopes):** every core table's model filters rows by the user's entity, team and project membership *automatically*. Developers can't forget it, and switching it off is only allowed in a short, reviewed list of places, such as the Owner's export.
+3. **Database-level limits (MySQL users and triggers):**
+   - The app connects as a database user that **cannot update or delete the audit log**. MySQL triggers also reject any such attempt.
+   - **Sensitive fields** (bank details, day rates, salaries, deal values) live in **separate tables**, read through a separate, more restricted database connection, and only after the user's sensitive-field permission is checked.
+   - Migrations (changes to the database structure) run under a different, privileged user that the running app never holds.
 
-## 3. MFA enforcement
+The **permission test matrix** (every role × every entity × assigned / unassigned) proves layers 1 and 2. Database tests prove layer 3.
 
-Supabase cannot see whether Google already checked a second factor, so we use two layers:
+## 4. Data protection
 
-1. **Google Workspace (admin console):** enforce 2-Step Verification for everyone. Require **security keys / passkeys only** for the Owner and Super Admin accounts (you can set this per group).
-2. **In the app:** Supabase MFA (TOTP authenticator app) is required before any page loads, so the database itself rejects sessions without the second factor (`aal2`). This also covers the break-glass account and any outside-account freelancers.
+- **Field-level encryption:** Laravel's encrypted fields with **AES-256-GCM** and a dedicated encryption key, kept separate from the general app key, for bank details, OAuth tokens, rates and salaries.
+- **Audit log:** append-only, with each row hash-chained to the previous one so tampering shows. A nightly copy goes to write-once storage (S3 Object Lock, EU) so that **no one, Owner included,** can alter history.
+- TLS 1.2+ and HSTS. Strict Content Security Policy. Bootstrap and the JavaScript are served from our own domain, not a CDN, which keeps the CSP tight.
 
-Re-authentication before exports, role changes and finance syncs is a fresh MFA challenge, checked on the server.
+## 5. Secrets manager (decision needed)
+**1Password Business** (it also holds the offline break-glass credentials) or **Doppler**. Either syncs secrets into the hosting and GitHub. Nothing secret goes in the repo, and `.env.example` holds placeholders only.
 
-## 4. Background jobs: Supabase Cron + Queues instead of Inngest
-
-**Recommendation: Supabase Cron + Supabase Queues (pgmq) for now.** Every extra provider is one more sub-processor to list, sign a DPA with and defend in a questionnaire. Supabase Cron and Queues run inside the same EU database. If the long Gmail and Drive syncs in phases 2 to 5 outgrow them, we revisit then. Trigger.dev and Inngest are the candidates, and they would be checked for EU hosting first.
-
-## 5. Secrets manager ⚠ decision needed
-
-Vercel and Supabase both store encrypted environment variables, which is fine for most app secrets. Bank questionnaires usually ask for a **dedicated secrets manager** with access logs and rotation.
-
-**Recommendation:** use **1Password Business** (it also holds the offline break-glass credentials and gives you one place to manage staff passwords) or **Doppler**. Both sync secrets into Vercel and GitHub. Either way, OAuth tokens (Google, Xero) are stored **encrypted in the database** with a key that sits outside the database (see §6).
-
-## 6. Things the brief asks for that need special care
-
-- **"Audit log editable by no one, Owner included."** We can block edits and deletes inside the app and the database: the table is append-only, enforced by database triggers, and each row is hash-chained to the previous one, so tampering shows. But whoever controls the Supabase account (you) could in theory still alter the database. To make the "Owner included" claim honest, we **copy audit events every night to write-once storage** (an EU S3 bucket with Object Lock in compliance mode, which nobody can delete from until the retention date). Cost: a few euros a month. I recommend adding it in Phase 1.
-- **Field-level encryption:** done in our server code with AES-256-GCM. The encryption key lives in the secrets manager, not in the database, so a database dump alone exposes no bank details, tokens or rates.
-- **30-minute idle timeout on finance screens:** enforced on the server through a "last activity" timestamp, not just a browser timer.
-- **Virus scanning of uploads (Phase 5):** needs a scanning service, for example ClamAV in a small EU container or a hosted scanner. We will decide this in the Phase 5 plan.
-- **Transactional email:** Postmark or Resend (both have EU options), sending from a FinEvents subdomain with SPF, DKIM and DMARC. We will decide this in Phase 1, when the Owner alert emails are built.
-
-## 7. Sub-processors (initial list for the security pack)
-
-Supabase (EU), Vercel (EU functions), Google Workspace, Sentry (EU), GitHub, email provider (TBD), secrets manager (TBD), AWS S3 EU (audit archive). Later phases add Pennylane, Xero and an upload scanner.
+## 6. Sub-processors (initial list for the security pack)
+AWS (EU: database, Redis, audit archive, and hosting if Forge), Laravel Cloud (if chosen), Google Workspace, Sentry (EU), GitHub, email provider (Postmark or Resend, chosen in Phase 1), secrets manager. Later phases add Pennylane, Xero and an upload virus scanner.
