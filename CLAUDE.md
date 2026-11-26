@@ -194,7 +194,7 @@ Environments: development (local), staging (test data; Max + pilot group), produ
 
 Each phase ends with a tested release on staging that Max signs off before the next starts.
 
-1. **Foundation:** repo, environments, Google sign-in with MFA, four roles, RLS, audit log, core records, user/role admin screens. → plan in `docs/phase-1-plan.md`
+1. **Foundation:** repo, environments, Google sign-in with MFA, four roles, three-layer permissions, audit log, core records, user/role admin screens. → plan in `docs/phase-1-plan.md`
 2. **CRM:** clients, contacts, deals, pipeline/metrics, Gmail logging, follow-up alerts, weekly digest.
 3. **Time tracking:** timer, manual entries, suggestions from Gmail/Calendar/Drive, approvals, reports. Retire Toggl.
 4. **Projects:** tasks, email/doc sync, Drive filing, health dashboard.
