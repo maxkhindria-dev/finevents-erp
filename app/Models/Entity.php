@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Classification;
 use Database\Factories\EntityFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,9 +24,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Entity extends Model implements HasVisibilityRules
 {
+    use Audited;
+
     /** @use HasFactory<EntityFactory> */
     use HasFactory;
-
     use ScopedToViewer;
 
     /** @var list<string> */

@@ -56,7 +56,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Tests (Pest) against MySQL 8
+      - name: Tests (Pest) against MySQL 8, in random order
         env:
           DB_CONNECTION: mysql
           DB_HOST: 127.0.0.1
@@ -64,7 +64,34 @@ jobs:
           DB_DATABASE: finevents_test
           DB_USERNAME: root
           DB_PASSWORD: ci-only-not-a-secret
-        run: vendor/bin/pest
+        run: vendor/bin/pest --order-by=random
+
+      # Permission layer 3: create the real logins the way production has them,
+      # apply the permissions, and prove MySQL itself refuses what it should.
+      - name: Database permission tests (layer 3) with real MySQL logins
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: finevents_test
+          DB_USERNAME: fe_app
+          DB_PASSWORD: ci-app-only
+          DB_SENSITIVE_USERNAME: fe_sensitive
+          DB_SENSITIVE_PASSWORD: ci-sensitive-only
+          DB_MIGRATOR_USERNAME: fe_migrator
+          DB_MIGRATOR_PASSWORD: ci-migrator-only
+          FINEVENTS_PRIVILEGE_TESTS: '1'
+        run: |
+          mysql -h 127.0.0.1 -uroot -pci-only-not-a-secret -e "
+            SET GLOBAL log_bin_trust_function_creators = 1;
+            CREATE USER 'fe_app'@'%' IDENTIFIED BY 'ci-app-only';
+            CREATE USER 'fe_sensitive'@'%' IDENTIFIED BY 'ci-sensitive-only';
+            CREATE USER 'fe_migrator'@'%' IDENTIFIED BY 'ci-migrator-only';
+            GRANT ALL PRIVILEGES ON finevents_test.* TO 'fe_migrator'@'%' WITH GRANT OPTION;
+            GRANT CREATE USER ON *.* TO 'fe_migrator'@'%';"
+          php artisan migrate:fresh --database=mysql_migrator --force
+          php artisan finevents:db:privileges --apply
+          vendor/bin/pest tests/Database
 
       - name: Known vulnerabilities in PHP packages
         run: composer audit

@@ -75,5 +75,6 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Local development and tests fall back to the app key.
+        Model::encryptUsing(null);
     }
 }

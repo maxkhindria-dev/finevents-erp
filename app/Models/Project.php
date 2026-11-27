@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Classification;
 use App\Enums\ProjectStatus;
 use App\Enums\Role;
@@ -35,9 +36,10 @@ use Illuminate\Support\Carbon;
  */
 class Project extends Model implements HasVisibilityRules
 {
+    use Audited;
+
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;
-
     use ScopedToViewer;
 
     /** Project codes look like FR-2026-014: entity, year, sequence. */
