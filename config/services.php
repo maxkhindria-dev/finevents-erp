@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Google Workspace sign-in (OAuth client of type "Internal").
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
 ];

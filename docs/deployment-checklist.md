@@ -12,6 +12,13 @@ Settings each environment must have before it goes live. Claude Code keeps this 
 
 Changing either key later makes existing encrypted fields, or existing audit seals, unverifiable until they are re-processed. Treat both as permanent.
 
+## Google sign-in
+
+1. In the FinEvents Google Cloud project, create an **OAuth client** (type *Web application*) under an **Internal** consent screen, so only FinEvents Workspace accounts can use it. Scopes: `openid`, `email`, `profile` only.
+2. **Authorised redirect URI:** `https://<environment address>/auth/google/callback`. Each environment (staging, production) gets its own URI, or its own client.
+3. Settings: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (in Dashlane), `GOOGLE_REDIRECT_URI`, and `GOOGLE_WORKSPACE_DOMAIN` (the FinEvents email domain). If the domain is missing, every sign-in is refused.
+4. **Google Workspace admin:** enforce 2-Step Verification for everyone, with security keys only for the leadership group. The ERP also asks for its own authenticator code at every sign-in.
+
 ## MySQL (managed, EU)
 
 1. **Three logins** (permission layer 3):

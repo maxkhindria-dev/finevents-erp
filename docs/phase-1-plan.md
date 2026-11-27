@@ -113,7 +113,9 @@ Each pull request gets a plain-English summary and "how to test on staging" step
 |---|---|---|
 | 1. Skeleton, theme, CI | ✅ Merged ([#1](https://github.com/maxkhindria-dev/finevents-erp/pull/1)) | Actions pinned to commit SHAs; Dependabot waits 14 days. |
 | 2. Core tables, scopes, policies, permission matrix | ✅ Merged ([#10](https://github.com/maxkhindria-dev/finevents-erp/pull/10)) | See notes below. |
-| 3. Audit log + permission layer 3 (MySQL logins) | In review | See step 3 notes below. |
+| 3. Audit log + permission layer 3 (MySQL logins) | ✅ Merged ([#12](https://github.com/maxkhindria-dev/finevents-erp/pull/12)) | See step 3 notes below. |
+| 4a. Google sign-in, authenticator-app MFA, session rules | In review | See step 4a notes below. |
+| 4b. Passkeys / hardware keys for Owner and Super Admins, break-glass account | To do | |
 
 ### Step 2 notes (decisions made while building)
 - **People are the login identity.** There is no separate "users" table and no passwords. Role and status can't be set by mass assignment; they change only through permission-checked actions.
@@ -140,3 +142,20 @@ Each pull request gets a plain-English summary and "how to test on staging" step
 - **Layer 3:** the app runs as a MySQL login with no access to sensitive tables. Budgets are read through a separate login, and migrations use a third. `finevents:db:privileges` prints or applies the exact permissions, and tests connect as each real login to prove MySQL refuses what it should.
 - **Still to come:** project and client membership changes and entity-scope grants (join tables) are logged explicitly when the screens that change them are built (step 5). "Viewed a restricted record" and sign-in events come with the screens (steps 4–7). Owner email alerts come in step 6.
 - **Hosting requirements found:** see `docs/deployment-checklist.md`. The most important is `log_bin_trust_function_creators = 1` on managed MySQL.
+
+### Step 4a notes
+- **Who can sign in:** Google sign-in only. Google itself must confirm the account belongs to the FinEvents Workspace, and the email must be verified on the FinEvents domain. The person must have been invited and be active. The ERP also remembers which Google account each person first used, and refuses a different one with the same email.
+- **What Google is asked for:** only name and email (`openid email profile`). Gmail, Drive and Calendar access is requested separately, per person, when those features arrive.
+- **Second factor:**
+  - an authenticator-app code is asked for at every sign-in, and each code works only once;
+  - 8 one-time recovery codes are shown once and stored only as one-way hashes;
+  - the secret is encrypted with the field key and visible to its owner alone, not even the Owner;
+  - 5 attempts per minute.
+- **Sessions:**
+  - a new session ID at sign-in and again after the second factor;
+  - signed out 12 hours after signing in;
+  - signed out on the next click if suspended, offboarded or expired;
+  - sign-out by form post only;
+  - `mfa.fresh` re-asks for a code before sensitive actions after 10 minutes.
+- **Audit:** sign-in, refusal (with the reason), second-factor success, failure and enrolment, recovery-code use, sign-out and forced sign-out are all logged.
+- **Still to come:** passkeys or hardware keys for the Owner and Super Admins, and the break-glass account (step 4b). The 30-minute idle limit is applied to finance screens when they're built (Phase 5). Owner alerts for new-country sign-ins and repeated failures come in step 6.
