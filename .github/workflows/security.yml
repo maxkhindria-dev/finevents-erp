@@ -15,7 +15,7 @@ jobs:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0 # scan the whole history, not just the latest commit
       - name: Run gitleaks
@@ -29,7 +29,7 @@ jobs:
     container:
       image: semgrep/semgrep:1.110.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - name: Run Semgrep (PHP, JavaScript, OWASP Top 10, secrets)
         run: |
           semgrep scan --error --metrics=off \
