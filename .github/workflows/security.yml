@@ -1,0 +1,38 @@
+name: Security scans
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * 1' # weekly, Monday 03:17 UTC, catches newly published issues
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0 # scan the whole history, not just the latest commit
+      - name: Run gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.2 \
+            git /repo --redact --verbose --exit-code 1
+
+  sast:
+    name: Static security analysis (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.110.0
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Run Semgrep (PHP, JavaScript, OWASP Top 10, secrets)
+        run: |
+          semgrep scan --error --metrics=off \
+            --config p/php --config p/javascript \
+            --config p/owasp-top-ten --config p/secrets \
+            --exclude vendor --exclude node_modules --exclude public/build

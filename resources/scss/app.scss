@@ -1,0 +1,53 @@
+// FinEvents ERP theme: Bootstrap 5 with the FinEvents brand.
+// Brand colours: Dark Blue #002F55 and Orange #F57634 only. Fonts: Lato Regular and Bold.
+//
+// Accessibility note: orange on white is only ~2.9:1 contrast, which fails WCAG AA
+// for text. So orange is used for buttons/accents with DARK BLUE text on top
+// (~4.9:1), never as text colour on white.
+
+$fe-blue: #002f55;
+$fe-orange: #f57634;
+
+$primary: $fe-blue;
+$secondary: $fe-orange;
+
+$font-family-sans-serif: 'Lato', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+$font-weight-bold: 700;
+$headings-font-weight: 700;
+$headings-color: $fe-blue;
+$body-color: #1b2733;
+$link-color: $fe-blue;
+
+$btn-font-weight: 700;
+$border-radius: .375rem;
+
+@import 'bootstrap/scss/bootstrap';
+
+// Orange buttons always carry dark blue text for contrast.
+.btn-secondary {
+    --bs-btn-color: #{$fe-blue};
+    --bs-btn-hover-color: #{$fe-blue};
+    --bs-btn-active-color: #{$fe-blue};
+    --bs-btn-disabled-color: #{$fe-blue};
+}
+
+.fe-navbar {
+    background-color: $fe-blue;
+    border-bottom: 4px solid $fe-orange;
+}
+
+.fe-brand-mark {
+    color: $fe-orange;
+}
+
+// Navigation entries for modules that arrive in later phases.
+.fe-nav-later {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.fe-env-badge {
+    background-color: $fe-orange;
+    color: $fe-blue;
+    font-weight: 700;
+}
