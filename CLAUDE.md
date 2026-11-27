@@ -31,6 +31,8 @@ FinEvents is a specialist financial events agency with entities in France, the U
 
 Four roles, enforced on the server **and** at the data layer (automatic query scopes plus restricted MySQL users; MySQL has no native row-level security, see `docs/stack-review.md` §3), never only by hiding UI. Every user has exactly one role. Freelancers are Users with an expiry date and project-scoped access.
 
+**First accounts (decided 27 Nov 2026):** Owner: Max. Super Admin: Solene (COO). Admins: Sarah (Head of Events), Elodie (Operations Manager). Everyone else starts as User.
+
 | Role | Who | Can do | Cannot do |
 |---|---|---|---|
 | Owner | Max only (one account + sealed break-glass account) | Everything: billing/hosting, delete workspace, create/demote Super Admins, all audit logs, export all data, approve finance syncs above a threshold | Bypass MFA or the audit log |
@@ -129,7 +131,7 @@ File contents live in Google Drive; the ERP stores IDs and metadata only.
 - Google Workspace SSO only; no separate passwords.
 - MFA enforced for every account; hardware keys or passkeys for Owner and Super Admin.
 - Sessions expire after 12 h, and after 30 min idle on finance screens; re-auth before exports, role changes and finance syncs.
-- Block sign-ins outside the FinEvents domain, except invited freelancers with an expiry date.
+- Only FinEvents Google Workspace accounts can sign in. Freelancers also have FinEvents accounts; the ERP marks them as freelancers with an access expiry date. (Decided 27 Nov 2026.)
 - Owner break-glass account: separate credentials stored offline; every use alerts by email.
 
 ### 5.2 Authorisation
@@ -181,7 +183,8 @@ File contents live in Google Drive; the ERP stores IDs and metadata only.
 | Front end | HTML, CSS, Bootstrap 5, plain JavaScript (Blade templates, server-rendered) |
 | Back end | PHP 8.3 + Laravel 12 |
 | Database | MySQL 8, managed, Frankfurt (e.g. AWS RDS), PITR on |
-| Hosting | Laravel Cloud (EU) or Laravel Forge + AWS Frankfurt (to decide) |
+| Hosting | Laravel Cloud, EU region (decided 27 Nov 2026) |
+| Secrets | Dashlane (company source of truth) → Laravel Cloud encrypted environment variables and GitHub Actions secrets |
 | Background jobs | Laravel scheduler + queues (Redis) |
 | Sign-in | Google (Socialite) + app MFA (Fortify TOTP) + passkeys for Owner/Super Admin |
 | Tests | Pest + Playwright |
@@ -206,13 +209,14 @@ Each phase ends with a tested release on staging that Max signs off before the n
 
 ## Open questions for Max
 
-- [ ] Who are the first Super Admins and Admins?
+- [x] Who are the first Super Admins and Admins? → Solene Super Admin; Sarah and Elodie Admins.
 - [ ] Default active period for freelancer accounts?
-- [ ] Should finance syncs above an amount need Owner approval, and what amount?
+- [ ] Should finance syncs above an amount need Owner approval, and what amount? (needed by Phase 5)
 - [ ] Do any current clients require ISO 27001 or SOC 2 from suppliers?
-- [ ] *(added by Claude)* Freelancer sign-in: FinEvents Google accounts for freelancers, or their own Google accounts? See `docs/stack-review.md` §2.
-- [ ] *(added by Claude)* Which secrets manager? See `docs/stack-review.md` §5.
-- [ ] *(added by Claude)* Hosting: Laravel Cloud (EU) or Forge + AWS Frankfurt?
+- [x] Freelancer sign-in → freelancers have FinEvents Google accounts; the app stays Internal to the Workspace.
+- [x] Secrets manager → Dashlane.
+- [x] Hosting → Laravel Cloud (EU).
+- [ ] *(added by Claude)* Which team and entity do Sarah and Elodie manage as Admins? (needed when accounts are created)
 
 ## Decisions log
 
@@ -220,3 +224,4 @@ Each phase ends with a tested release on staging that Max signs off before the n
 |---|---|---|
 | 2026-11-26 | Brief saved as CLAUDE.md; stack review and Phase 1 plan proposed, awaiting approval | Claude Code |
 | 2026-11-26 | Stack changed to HTML/CSS/Bootstrap/JS + PHP (Laravel) + MySQL. No native row-level security, so permissions use 3 layers: policies, automatic query scopes, restricted MySQL users/triggers | Max |
+| 2026-11-27 | Phase 1 plan approved. Hosting: Laravel Cloud (EU). Freelancers use FinEvents Google accounts (app stays Internal, domain-only sign-in). Secrets: Dashlane. Roles: Solene Super Admin; Sarah and Elodie Admins | Max |

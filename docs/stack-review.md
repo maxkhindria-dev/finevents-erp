@@ -1,6 +1,6 @@
 # Tech stack review
 
-**Status:** stack changed to PHP + MySQL on 26 Nov 2026 (Max's decision). Hosting and secrets-manager choices are still open.
+**Status:** stack changed to PHP + MySQL on 26 Nov 2026; hosting (Laravel Cloud), freelancer sign-in and secrets manager (Dashlane) decided 27 Nov 2026.
 
 **Summary:** HTML, CSS, Bootstrap and JavaScript for the front end, PHP (Laravel framework) for the back end, MySQL for the database. MySQL has no built-in row-level security, so permissions are enforced in three layers instead (see §3). The brief's security section has been updated to say this plainly.
 
@@ -13,7 +13,7 @@
 | Front end | HTML + CSS + **Bootstrap 5** + plain JavaScript, rendered by Laravel's Blade templates | As requested. The pages are built on the server, so no permission logic runs in the browser. Bootstrap is themed in Dark Blue #002F55 / Orange #F57634 with Lato. |
 | Back end | **PHP 8.3 + Laravel 12** | Laravel is the most widely used PHP framework, and any PHP developer can maintain it. CSRF protection, input validation, encryption, queues and permission "policies" come built in. |
 | Database | **MySQL 8**, managed, in **Frankfurt** (e.g. AWS RDS eu-central-1) | Managed service: encrypted at rest (AES-256), daily backups, point-in-time recovery. Meets RPO ≤ 24 h. |
-| Hosting | **Laravel Cloud (EU region)** or **Laravel Forge + AWS Frankfurt** ⚠ decision needed | Both are made for Laravel. Cloud is simpler and fully managed. Forge gives more control and keeps everything in one AWS account. |
+| Hosting | **Laravel Cloud, EU region** (decided) | Fully managed and made for Laravel. Managed MySQL and Redis are provisioned in the same EU region where available; otherwise AWS RDS Frankfurt. |
 | Background jobs | Laravel **scheduler + queues** (Redis, same region) | Daily email sync and invoice matching runs. No extra supplier. |
 | Sign-in | Google sign-in (**Laravel Socialite**), **Laravel Fortify** for app MFA (authenticator app), **WebAuthn passkeys** for Owner and Super Admin | See §2. |
 | Tests | **Pest** (PHP tests, including the permission matrix), **Playwright** (end-to-end in a real browser) | |
@@ -22,14 +22,14 @@
 
 ## 2. Sign-in and MFA
 
-- **Google sign-in only:** no passwords stored by us. Only the FinEvents domain is allowed (plus invited freelancers, depending on the decision below).
+- **Google sign-in only:** no passwords stored by us. Only FinEvents Workspace accounts are allowed. The Google OAuth app is set to **Internal**, so Google itself refuses anyone outside the domain.
 - **Two layers of MFA:**
   1. In the Google Workspace admin console, enforce 2-Step Verification for everyone, with security keys only for leadership.
   2. In the app, an extra second factor at every new session: an authenticator app for everyone, passkeys or hardware keys required for the Owner and Super Admin.
 - Sessions are stored on the server and last at most 12 hours. Finance screens time out after 30 minutes idle, enforced on the server. A fresh MFA check is required before exports, role changes and finance syncs.
 
-### ⚠ Freelancers (decision needed, same as before)
-If freelancers sign in with their own Google accounts, Google treats the app as public. Reading Gmail and Drive then needs Google's review plus a **paid annual security assessment**. **Recommendation:** give freelancers FinEvents Google Workspace accounts (roughly €7–14 per month each). This also lets you enforce MFA on them and offboard them in one action.
+### Freelancers (decided 27 Nov 2026)
+Freelancers already have FinEvents Google Workspace accounts, so the app stays **Internal** and needs no Google review or paid security assessment. The ERP marks them as freelancers with an access expiry date and project-only access. Offboarding suspends them in the ERP; suspending the Google account in the Workspace admin is the second step.
 
 ## 3. Permissions without row-level security
 
@@ -50,8 +50,11 @@ The **permission test matrix** (every role × every entity × assigned / unassig
 - **Audit log:** append-only, with each row hash-chained to the previous one so tampering shows. A nightly copy goes to write-once storage (S3 Object Lock, EU) so that **no one, Owner included,** can alter history.
 - TLS 1.2+ and HSTS. Strict Content Security Policy. Bootstrap and the JavaScript are served from our own domain, not a CDN, which keeps the CSP tight.
 
-## 5. Secrets manager (decision needed)
-**1Password Business** (it also holds the offline break-glass credentials) or **Doppler**. Either syncs secrets into the hosting and GitHub. Nothing secret goes in the repo, and `.env.example` holds placeholders only.
+## 5. Secrets (decided 27 Nov 2026: Dashlane)
+- **Dashlane** is the company's source of truth for every key and credential, in a shared collection limited to Max and named Super Admins. The offline break-glass credentials are kept there too, plus a sealed paper copy.
+- **At runtime**, secrets are copied into **Laravel Cloud's encrypted environment variables** (production and staging separately). CI secrets go into **GitHub Actions secrets**.
+- Dashlane doesn't push secrets into hosting automatically, so updating them is a manual, two-person step. Every rotation is recorded in the decisions log, with dates only and never values.
+- Nothing secret goes in the repo; `.env.example` holds placeholders only; gitleaks blocks accidents.
 
 ## 6. Sub-processors (initial list for the security pack)
-AWS (EU: database, Redis, audit archive, and hosting if Forge), Laravel Cloud (if chosen), Google Workspace, Sentry (EU), GitHub, email provider (Postmark or Resend, chosen in Phase 1), secrets manager. Later phases add Pennylane, Xero and an upload virus scanner.
+Laravel Cloud (EU hosting, database, Redis), AWS S3 EU (audit archive), Dashlane, Google Workspace, Sentry (EU), GitHub, email provider (Postmark or Resend, chosen in Phase 1). Later phases add Pennylane, Xero and an upload virus scanner.

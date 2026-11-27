@@ -1,6 +1,6 @@
 # Phase 1 plan: Foundation (PHP / Laravel / MySQL)
 
-**Status:** revised 26 Nov 2026 for the PHP + MySQL stack, waiting for Max's approval. No code is written until it is approved.
+**Status:** approved by Max on 27 Nov 2026.
 
 **Goal:** a staging site where FinEvents staff sign in with Google + MFA and each see only what their role and entity allow. Admins can manage users and see the audit log. The core records (Entity, Person, Client, Project, Document) exist for every later module to build on.
 
@@ -42,7 +42,7 @@ Deal, Contact, Task and the other records arrive in their own phases.
 
 ## B. Screens (Blade + Bootstrap 5, FinEvents theme)
 
-1. **Sign in:** "Continue with Google", FinEvents domain only (plus invited freelancers, depending on the open decision).
+1. **Sign in:** "Continue with Google", FinEvents Workspace accounts only (staff and freelancers). Unknown FinEvents accounts are refused until an Admin invites them.
 2. **MFA setup / challenge:** authenticator app for everyone, passkey for Owner and Super Admin. Required on every new session and again before sensitive actions.
 3. **Home:** navigation shell (CRM, Time, Projects, Finance, Time off, Wiki, plus a greyed-out "Brand tools" placeholder). Each item shows only if the role allows it.
 4. **Users (Admin+):** list with role, entity, team, kind, expiry and last login, plus filters.
@@ -95,10 +95,12 @@ Each pull request gets a plain-English summary and "how to test on staging" step
 ## F. What Max needs to set up first (Claude will guide each step)
 
 1. **A private GitHub repository** (e.g. `finevents-erp`), connected to this Claude Code environment, with branch protection turned on.
-2. **Hosting choice:** Laravel Cloud (EU) or Forge + AWS Frankfurt. Then staging and production environments.
-3. **Managed MySQL 8** in Frankfurt (staging and production), with backups and point-in-time recovery turned on.
+2. **Laravel Cloud** account (EU region), with staging and production environments.
+3. **Managed MySQL 8** in the EU (via Laravel Cloud, or AWS RDS Frankfurt), with backups and point-in-time recovery turned on.
 4. **Google Cloud project** under the FinEvents Workspace, with an OAuth client (Internal).
 5. **Google Workspace admin:** enforce 2-Step Verification, with security keys for the leadership group.
-6. Decisions on the open questions in `CLAUDE.md`.
+6. A Dashlane shared collection for ERP secrets.
+
+**First accounts seeded:** Max (Owner), Solene (Super Admin), Sarah and Elodie (Admins).
 
 **Phase 1 sign-off:** you sign in on staging, all permission tests pass in CI, and you try the test account for each role and confirm each sees the right things.
