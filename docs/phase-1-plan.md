@@ -104,3 +104,24 @@ Each pull request gets a plain-English summary and "how to test on staging" step
 **First accounts seeded:** Max (Owner), Solene (Super Admin), Sarah and Elodie (Admins).
 
 **Phase 1 sign-off:** you sign in on staging, all permission tests pass in CI, and you try the test account for each role and confirm each sees the right things.
+
+---
+
+## Progress
+
+| Step | Status | Notes |
+|---|---|---|
+| 1. Skeleton, theme, CI | ✅ Merged ([#1](https://github.com/maxkhindria-dev/finevents-erp/pull/1)) | Actions pinned to commit SHAs; Dependabot waits 14 days. |
+| 2. Core tables, scopes, policies, permission matrix | In review | See notes below. |
+
+### Step 2 notes (decisions made while building)
+- **People are the login identity.** There is no separate "users" table and no passwords. Role and status can't be set by mass assignment; they change only through permission-checked actions.
+- **Only one Owner** is enforced by MySQL itself, using a unique "owner slot" column. The break-glass account is designed in step 4 (sign-in).
+- **Project budgets** live in `project_financials`, encrypted with AES-256-GCM using a dedicated `FIELD_ENCRYPTION_KEY`, and are visible only with the **deal values** permission for that entity. Owner and Super Admins see all sensitive fields.
+- **Admins** see projects, clients and people in their own entities. **Everyone** also sees projects and clients they are explicitly assigned to. **Freelancers** see only documents marked "freelancers allowed".
+- **Deny by default:**
+  - when nobody is signed in, every query returns nothing;
+  - trusted system work (seeders, scheduled jobs) must say so explicitly with `runAsSystem()`;
+  - a model that hasn't declared its visibility rules is fully hidden.
+- **Laravel's built-in `/storage` file serving and upload routes are switched off.** Files live in Google Drive.
+- **Layer 3 (restricted MySQL users, separate connection for sensitive tables) moves to step 3**, together with the audit-log triggers, because both need the same database-user setup.

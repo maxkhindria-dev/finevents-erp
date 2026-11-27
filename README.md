@@ -18,7 +18,7 @@ npm ci
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
-php artisan migrate
+php artisan migrate --seed   # demo data is generated and fictional (@example.test)
 npm run build
 php artisan serve
 ```

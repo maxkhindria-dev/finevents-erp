@@ -7,5 +7,6 @@ parameters:
         - config/
         - database/
         - routes/
-    # Start strict; raise to "max" once the core models exist (Phase 1, PR 2).
+    # Level 8 (strict). "max" was tried in Phase 1 step 2: it mostly flags values
+    # Laravel itself returns untyped (request closures, DB rows), so little gain.
     level: 8

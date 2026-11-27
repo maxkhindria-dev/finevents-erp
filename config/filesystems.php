@@ -33,7 +33,7 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            'serve' => false, // FinEvents: files live in Google Drive; never serve or accept uploads here
             'throw' => false,
             'report' => false,
         ],

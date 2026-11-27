@@ -2,24 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Access\AccessContext;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Seeding is trusted system work, so it runs without record filters.
+     * Generated demo data is never created in production.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        app(AccessContext::class)->runAsSystem(function (): void {
+            $this->call(EntitySeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+            if (! app()->isProduction()) {
+                $this->call(DemoDataSeeder::class);
+            }
+        });
     }
 }
