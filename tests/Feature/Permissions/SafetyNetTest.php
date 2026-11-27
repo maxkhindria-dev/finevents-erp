@@ -53,22 +53,31 @@ it('gives every model a policy rule book', function () {
     }
 });
 
-it('requires sign-in and a permission check on every route that is not explicitly public', function () {
-    $public = ['/', 'up'];
+it('puts every route in one of the three tiers: public, second-factor pending, or fully checked', function () {
+    // 1. Public: sign-in page, Google round trip, health check.
+    $public = ['/', 'up', 'auth/google', 'auth/google/callback'];
+    // 2. Signed in but before the second factor: only MFA screens and sign-out.
+    $preMfa = ['mfa', 'mfa/setup', 'sign-out'];
     $checked = 0;
 
     foreach (Route::getRoutes() as $route) {
-        if (in_array($route->uri(), $public, true)) {
+        $uri = $route->uri();
+        $middleware = $route->gatherMiddleware();
+
+        if (in_array($uri, $public, true)) {
             continue;
         }
 
         $checked++;
+        expect(in_array('auth', $middleware, true))->toBeTrue("Route {$uri} must require sign-in");
 
-        $middleware = $route->gatherMiddleware();
+        if (in_array($uri, $preMfa, true)) {
+            continue;
+        }
 
-        expect(in_array('auth', $middleware, true))->toBeTrue("Route {$route->uri()} must require sign-in")
+        expect(in_array('mfa', $middleware, true))->toBeTrue("Route {$uri} must require the second factor")
             ->and(collect($middleware)->contains(fn ($m) => str_starts_with((string) $m, 'can:')))
-            ->toBeTrue("Route {$route->uri()} must have a can: permission check");
+            ->toBeTrue("Route {$uri} must have a can: permission check");
     }
 
     // Every route was either checked above or is on the short public list.
