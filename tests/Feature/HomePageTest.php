@@ -1,12 +1,22 @@
 <?php
 
+use App\Access\AccessContext;
+use App\Models\Entity;
+use App\Models\Person;
+
 beforeEach(fn () => $this->withoutVite());
 
-it('shows the home page with the FinEvents navigation shell', function () {
-    $response = $this->get('/');
+it('shows visitors the sign-in page', function () {
+    $this->get('/')->assertOk()->assertSee('Sign in to FinEvents ERP');
+});
 
-    $response->assertOk()
-        ->assertSee('FinEvents ERP')
+it('shows the FinEvents navigation shell once signed in with the second factor', function () {
+    $person = Person::factory()->in(app(AccessContext::class)->runAsSystem(fn () => Entity::factory()->code('FR')->create()))->create();
+
+    $this->actingAs($person)
+        ->withSession(['signed_in_at' => now()->timestamp, 'mfa_verified_at' => now()->timestamp])
+        ->get('/home')
+        ->assertOk()
         ->assertSee('CRM')
         ->assertSee('Time off')
         ->assertSee('Brand tools')
