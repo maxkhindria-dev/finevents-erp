@@ -13,7 +13,7 @@
         "vite": "^8.3.8"
     },
     "dependencies": {
-        "@fontsource/lato": "^5.2.5",
+        "@fontsource/lato": "^5.3.0",
         "bootstrap": "^5.3.9"
     }
 }
