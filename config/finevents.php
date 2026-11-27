@@ -29,6 +29,15 @@ return [
     // Host part of the MySQL accounts that finevents:db:privileges grants to.
     'db_account_host' => env('DB_ACCOUNT_HOST', '%'),
 
+    // Only Google accounts from this Workspace domain may sign in. If it is not
+    // set, every sign-in is refused (fail closed).
+    'workspace_domain' => env('GOOGLE_WORKSPACE_DOMAIN'),
+
+    // Sign-in rules (CLAUDE.md §5.1).
+    'session_max_hours' => 12,       // signed out 12 hours after signing in, whatever happens
+    'mfa_fresh_minutes' => 10,       // sensitive actions need an MFA check this recent
+    'mfa_issuer' => 'FinEvents ERP', // name shown in authenticator apps
+
     'brand' => [
         'blue' => '#002F55',
         'orange' => '#F57634',

@@ -21,21 +21,38 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto">
-                    @foreach (config('finevents.modules') as $module)
-                        <li class="nav-item">
-                            <span class="nav-link fe-nav-later" aria-disabled="true"
-                                  title="{{ $module['phase'] ? 'Arrives in Phase '.$module['phase'] : 'Planned after v1' }}">
-                                {{ $module['label'] }}
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
+                @auth
+                    @if (session('mfa_verified_at'))
+                        <ul class="navbar-nav me-auto">
+                            @foreach (config('finevents.modules') as $module)
+                                <li class="nav-item">
+                                    <span class="nav-link fe-nav-later" aria-disabled="true"
+                                          title="{{ $module['phase'] ? 'Arrives in Phase '.$module['phase'] : 'Planned after v1' }}">
+                                        {{ $module['label'] }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    <div class="d-flex align-items-center ms-auto gap-3">
+                        <span class="navbar-text text-white small">{{ auth()->user()->full_name }}</span>
+                        <form method="POST" action="{{ route('sign-out') }}" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-light">Sign out</button>
+                        </form>
+                    </div>
+                @endauth
             </div>
         </div>
     </nav>
 
     <main class="container py-4">
+        @if (session('status'))
+            <div class="alert alert-info" role="status">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+        @endif
         @yield('content')
     </main>
 </body>
