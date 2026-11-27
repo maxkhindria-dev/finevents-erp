@@ -45,7 +45,10 @@ trait Audited
      */
     private static function writeAudit(Model $model, string $event, ?array $before, ?array $after): void
     {
-        $entityId = $model->getAttribute('entity_id') ?? $model->getAttribute('primary_entity_id');
+        // Read raw attributes: not every model has these columns, and strict
+        // mode rightly refuses to read a column that doesn't exist.
+        $attributes = $model->getAttributes();
+        $entityId = $attributes['entity_id'] ?? $attributes['primary_entity_id'] ?? null;
 
         app(AuditLogger::class)->record(
             action: self::auditName($model).'.'.$event,

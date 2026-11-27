@@ -6,11 +6,14 @@ use App\Access\AccessContext;
 use App\Access\UnscopedPersonProvider;
 use App\Models\Person;
 use App\Security\MissingFieldKeyEncrypter;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\Encrypter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -34,6 +37,13 @@ class AppServiceProvider extends ServiceProvider
             $app->make('hash'),
             $config['model'],
         ));
+
+        // Anyone active may open the app itself; what they see inside is up to the policies.
+        Gate::define('use-app', fn (Person $person): bool => true);
+
+        // Throttle sign-in attempts per IP, and second-factor attempts per person.
+        RateLimiter::for('sign-in', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
+        RateLimiter::for('mfa', fn (Request $request) => Limit::perMinute(5)->by('mfa:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Layer 1 guard rail: suspended, offboarded or expired people are refused
         // everything, before any individual permission rule is consulted.

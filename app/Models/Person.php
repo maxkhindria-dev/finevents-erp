@@ -61,6 +61,10 @@ class Person extends Authenticatable implements HasVisibilityRules
 
     /** @var array<string, mixed> */
     protected $attributes = [
+        'google_id' => null,
+        'team_id' => null,
+        'access_expires_at' => null,
+        'last_login_at' => null,
         'role' => 'user',
         'kind' => 'employee',
         'status' => 'active',
