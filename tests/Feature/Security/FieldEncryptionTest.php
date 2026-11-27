@@ -40,14 +40,19 @@ it('rejects a field key of the wrong length', function () {
         ->toThrow(RuntimeException::class, '32-byte');
 });
 
-it('refuses to start in production without a field encryption key', function () {
+it('in production without a key, still boots but refuses to read or write encrypted fields', function () {
     $originalEnv = app()->environment();
     app()['env'] = 'production';
 
     try {
-        expect(fn () => bootWithFieldKey(null))->toThrow(RuntimeException::class, 'FIELD_ENCRYPTION_KEY is missing');
+        bootWithFieldKey(null); // must not throw: installs and builds need to boot
+
+        expect(fn () => app(AccessContext::class)->runAsSystem(
+            fn () => ProjectFinancial::factory()->create(['budget' => '1000'])
+        ))->toThrow(RuntimeException::class, 'FIELD_ENCRYPTION_KEY is missing');
     } finally {
         app()['env'] = $originalEnv;
+        bootWithFieldKey(null); // back to the test fallback
     }
 });
 

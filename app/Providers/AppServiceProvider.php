@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Access\AccessContext;
 use App\Access\UnscopedPersonProvider;
 use App\Models\Person;
+use App\Security\MissingFieldKeyEncrypter;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Encryption\Encrypter;
@@ -67,7 +68,10 @@ class AppServiceProvider extends ServiceProvider
         }
 
         if ($this->app->isProduction()) {
-            throw new RuntimeException('FIELD_ENCRYPTION_KEY is missing. Refusing to start in production.');
+            // Boot (so installs and builds work) but refuse to touch encrypted fields.
+            Model::encryptUsing(new MissingFieldKeyEncrypter);
+
+            return;
         }
 
         // Local development and tests fall back to the app key.
