@@ -9,3 +9,6 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in('Feature');
+
+// Layer 3 database-permission tests: real MySQL logins, no transaction wrapping.
+pest()->extend(TestCase::class)->in('Database');

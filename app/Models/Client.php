@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Classification;
 use App\Enums\Role;
 use Database\Factories\ClientFactory;
@@ -29,6 +30,8 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  */
 class Client extends Model implements HasVisibilityRules
 {
+    use Audited;
+
     /** @use HasFactory<ClientFactory> */
     use HasFactory;
 

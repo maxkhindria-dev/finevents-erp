@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Classification;
 use App\Enums\SensitiveField;
 use Database\Factories\ProjectFinancialFactory;
@@ -24,6 +25,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ProjectFinancial extends Model implements HasVisibilityRules
 {
+    use Audited;
+
     /** @use HasFactory<ProjectFinancialFactory> */
     use HasFactory;
 
@@ -31,6 +34,18 @@ class ProjectFinancial extends Model implements HasVisibilityRules
 
     /** @var list<string> */
     protected $fillable = ['project_id', 'budget'];
+
+    /**
+     * Sensitive tables are read through their own database login in
+     * production (layer 3). Locally and in ordinary tests this is the
+     * default connection.
+     */
+    public function getConnectionName(): ?string
+    {
+        $sensitive = config('finevents.sensitive_connection');
+
+        return is_string($sensitive) && $sensitive !== '' ? $sensitive : parent::getConnectionName();
+    }
 
     /** @var array<string, mixed> */
     protected $attributes = ['classification' => 'restricted'];

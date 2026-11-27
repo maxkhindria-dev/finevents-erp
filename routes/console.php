@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+| Scheduled jobs (times in UTC). Laravel Cloud runs the scheduler every minute.
+*/
+
+// Check every audit seal, then copy new entries to write-once storage.
+Schedule::command('finevents:audit:verify')->dailyAt('02:10')->onOneServer();
+Schedule::command('finevents:audit:archive')->dailyAt('02:20')->onOneServer();

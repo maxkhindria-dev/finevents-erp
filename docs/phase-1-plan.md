@@ -112,7 +112,8 @@ Each pull request gets a plain-English summary and "how to test on staging" step
 | Step | Status | Notes |
 |---|---|---|
 | 1. Skeleton, theme, CI | ✅ Merged ([#1](https://github.com/maxkhindria-dev/finevents-erp/pull/1)) | Actions pinned to commit SHAs; Dependabot waits 14 days. |
-| 2. Core tables, scopes, policies, permission matrix | In review | See notes below. |
+| 2. Core tables, scopes, policies, permission matrix | ✅ Merged ([#10](https://github.com/maxkhindria-dev/finevents-erp/pull/10)) | See notes below. |
+| 3. Audit log + permission layer 3 (MySQL logins) | In review | See step 3 notes below. |
 
 ### Step 2 notes (decisions made while building)
 - **People are the login identity.** There is no separate "users" table and no passwords. Role and status can't be set by mass assignment; they change only through permission-checked actions.
@@ -125,3 +126,17 @@ Each pull request gets a plain-English summary and "how to test on staging" step
   - a model that hasn't declared its visibility rules is fully hidden.
 - **Laravel's built-in `/storage` file serving and upload routes are switched off.** Files live in Google Drive.
 - **Layer 3 (restricted MySQL users, separate connection for sensitive tables) moves to step 3**, together with the audit-log triggers, because both need the same database-user setup.
+
+### Step 3 notes
+- **Audit log:**
+  - every create, edit and delete of a core record is logged with before and after values, who did it and from where;
+  - encrypted and hidden fields are never copied in; the log only notes that they changed;
+  - each entry is sealed to the previous one with an HMAC whose key (`AUDIT_CHAIN_KEY`) lives outside the database.
+- **Append-only, three ways:**
+  - database triggers refuse edits and deletions for every login;
+  - the app login has only SELECT and INSERT on the log;
+  - the model refuses changes in code.
+- **Tampering is detected** by `finevents:audit:verify`, run daily: an altered, missing or re-sealed entry is reported along with the first broken link. `finevents:audit:archive` then copies new entries to write-once storage.
+- **Layer 3:** the app runs as a MySQL login with no access to sensitive tables. Budgets are read through a separate login, and migrations use a third. `finevents:db:privileges` prints or applies the exact permissions, and tests connect as each real login to prove MySQL refuses what it should.
+- **Still to come:** project and client membership changes and entity-scope grants (join tables) are logged explicitly when the screens that change them are built (step 5). "Viewed a restricted record" and sign-in events come with the screens (steps 4–7). Owner email alerts come in step 6.
+- **Hosting requirements found:** see `docs/deployment-checklist.md`. The most important is `log_bin_trust_function_creators = 1` on managed MySQL.

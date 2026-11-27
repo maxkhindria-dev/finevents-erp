@@ -7,6 +7,11 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
 
+afterEach(function () {
+    // Each test changes the global encryption setting; put the default back.
+    bootWithFieldKey(null);
+});
+
 function bootWithFieldKey(?string $key): void
 {
     config(['finevents.field_encryption_key' => $key]);
@@ -43,6 +48,7 @@ it('rejects a field key of the wrong length', function () {
 it('in production without a key, still boots but refuses to read or write encrypted fields', function () {
     $originalEnv = app()->environment();
     app()['env'] = 'production';
+    config(['finevents.audit_chain_key' => 'base64:'.base64_encode(random_bytes(32))]); // isolate: only the field key is missing
 
     try {
         bootWithFieldKey(null); // must not throw: installs and builds need to boot
