@@ -4,6 +4,8 @@ Brief dated 26 Nov 2026 · Owner: Max. Keep this file updated as decisions chang
 
 ## How Claude Code works on this project
 
+- **Permissions:** every model uses `ScopedToViewer` and implements `HasVisibilityRules`; every model has a policy in `app/Policies`; any change to who-sees-what updates `tests/Feature/Permissions` first. Trusted background work uses `app(AccessContext::class)->runAsSystem(...)`, never `withoutGlobalScopes()`.
+
 - Start each phase in plan mode: propose the database tables, screens and tests, and wait for Max's approval before coding.
 - Write automated tests for every permission rule (each role, each entity) alongside the feature.
 - Never commit secrets; use `.env.example` with placeholder names only.
@@ -225,3 +227,4 @@ Each phase ends with a tested release on staging that Max signs off before the n
 | 2026-11-26 | Brief saved as CLAUDE.md; stack review and Phase 1 plan proposed, awaiting approval | Claude Code |
 | 2026-11-26 | Stack changed to HTML/CSS/Bootstrap/JS + PHP (Laravel) + MySQL. No native row-level security, so permissions use 3 layers: policies, automatic query scopes, restricted MySQL users/triggers | Max |
 | 2026-11-27 | Phase 1 plan approved. Hosting: Laravel Cloud (EU). Freelancers use FinEvents Google accounts (app stays Internal, domain-only sign-in). Secrets: Dashlane. Roles: Solene Super Admin; Sarah and Elodie Admins | Max |
+| 2026-11-27 | Step 2 built: `people` table is the login identity (no passwords); single Owner enforced by MySQL; budgets need the deal-values grant; deny-by-default record filters with explicit `runAsSystem()`; layer 3 (MySQL users) moves to step 3 with the audit log | Claude Code |

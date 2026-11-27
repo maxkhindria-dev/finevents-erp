@@ -8,6 +8,10 @@
 
 return [
 
+    // Dedicated key for field-level encryption (AES-256-GCM). Required in
+    // production; generate with: php artisan finevents:generate-field-key
+    'field_encryption_key' => env('FIELD_ENCRYPTION_KEY'),
+
     'brand' => [
         'blue' => '#002F55',
         'orange' => '#F57634',
