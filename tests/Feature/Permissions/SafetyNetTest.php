@@ -8,7 +8,9 @@
 use App\Access\AccessContext;
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Role;
+use App\Models\AuditEvent;
 use App\Models\Entity;
 use App\Models\Person;
 use App\Models\Project;
@@ -31,6 +33,17 @@ it('makes every model use the automatic record filter', function () {
             ->toBeTrue("{$class} must use ScopedToViewer (deny by default)")
             ->and(is_subclass_of($class, HasVisibilityRules::class))
             ->toBeTrue("{$class} must implement HasVisibilityRules");
+    }
+});
+
+it('audits every model except the audit log itself', function () {
+    foreach (appModelClasses() as $class) {
+        if ($class === AuditEvent::class) {
+            continue;
+        }
+
+        expect(in_array(Audited::class, class_uses_recursive($class), true))
+            ->toBeTrue("{$class} must use Audited so its changes are logged");
     }
 });
 

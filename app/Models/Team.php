@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Access\HasVisibilityRules;
 use App\Access\ScopedToViewer;
+use App\Audit\Audited;
 use App\Enums\Classification;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Team extends Model implements HasVisibilityRules
 {
+    use Audited;
+
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
