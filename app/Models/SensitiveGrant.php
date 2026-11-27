@@ -31,6 +31,7 @@ class SensitiveGrant extends Model implements HasVisibilityRules
 
     /** @use HasFactory<SensitiveGrantFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */

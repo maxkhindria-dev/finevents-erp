@@ -28,6 +28,7 @@ class Entity extends Model implements HasVisibilityRules
 
     /** @use HasFactory<EntityFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */

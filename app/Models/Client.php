@@ -34,6 +34,7 @@ class Client extends Model implements HasVisibilityRules
 
     /** @use HasFactory<ClientFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */

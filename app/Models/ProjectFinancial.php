@@ -29,6 +29,7 @@ class ProjectFinancial extends Model implements HasVisibilityRules
 
     /** @use HasFactory<ProjectFinancialFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */

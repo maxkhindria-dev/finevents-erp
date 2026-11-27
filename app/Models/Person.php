@@ -44,6 +44,7 @@ class Person extends Authenticatable implements HasVisibilityRules
 
     /** @use HasFactory<PersonFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     protected $table = 'people';

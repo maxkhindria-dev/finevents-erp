@@ -26,6 +26,7 @@ class Team extends Model implements HasVisibilityRules
 
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */

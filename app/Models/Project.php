@@ -40,6 +40,7 @@ class Project extends Model implements HasVisibilityRules
 
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** Project codes look like FR-2026-014: entity, year, sequence. */

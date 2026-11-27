@@ -32,6 +32,7 @@ class Document extends Model implements HasVisibilityRules
 
     /** @use HasFactory<DocumentFactory> */
     use HasFactory;
+
     use ScopedToViewer;
 
     /** @var list<string> */
